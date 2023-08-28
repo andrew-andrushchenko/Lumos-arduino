@@ -31,26 +31,26 @@ To be able to compile and use this sketch you should install the [FastLED](https
 
 This define line allows us to enable or disable debug mode to see (or not see XD) data transfer communications. (Set it to 1 to enable and 0 to disable).
 
-```arduino
+```c++
 #define LUMOS_DEBUG                     0
 ```
 
 Then we have **LED_COUNT** parameter which defines how many LEDs our stripe have. Put your amount here. **LED_PIN** parameter points to an arduino pin which will send commands to the LED stripe. This pin is wired with stripe's **DIN**.
 
-```arduino
+```c++
 #define LED_COUNT                      60
 #define LED_PIN                         7
 ```
 
 Since we're using two-dimensional Perlin noise we should move around generated values with some step size. You can put your's here. You can play with the values but the default 15 is an optimal one.
 
-```arduino
+```c++
 #define COLOR_SHIFT_STEP               15
 ```
 
 The next bunch of settings defines by how much components like **Hue**, **Saturation** and **Value** should bend around some base value creating realistic fire effect.
 
-```arduino
+```c++
 #define HUE_DEVIATION                  21
 #define MIN_SATURATION_DEVIATION      245
 #define MAX_SATURATION_DEVIATION      255
@@ -61,7 +61,7 @@ The next bunch of settings defines by how much components like **Hue**, **Satura
 Here we have bluetooth data transfer pins to define. Look carefully how you connected your HC-06 module data lines (RXD, TXD) and provide the correct arduino pins. <br/>
 For instance if you connect your HC-06 **RXD** pin to arduino's 10th pin, and **TXD** pin to arduino's 11th pin, then the setup will look like this:
 
-```arduino
+```c++
 #define BT_RX_PIN                      10
 #define BT_TX_PIN                      11
 ```
