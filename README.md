@@ -1,6 +1,6 @@
 # Lumos arduino
 
-Arduino part of the Lumos LED stripe project, a unique and beautiful DIY bluethooth-controlled room ambient light based on the WS2812B addressable LED stripe and HC-06 UART Bluetooth module.
+Arduino part of the Lumos LED stripe project, a unique and beautiful DIY Bluethooth-controlled room ambient light based on the WS2812B addressable LED stripe and HC-06 UART Bluetooth module.
 
 | | | |
 |-|-|-|
