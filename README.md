@@ -72,3 +72,39 @@ For instance, if you connect your HC-06 **RXD** pin to the Arduino's 10th pin an
 #define BT_RX_PIN    10
 #define BT_TX_PIN    11
 ```
+
+## Communication protocol
+Currently, the program can react to these types of incoming commands:
+* Change color hue
+* Change stripe brightness
+
+To change the hue parameter, we should send it as a next string:
+```
+c<hue_value>
+```
+where *hue_value* is some value between 0 and 360.
+
+Example of a valid command to change hue:
+```
+c128
+```
+
+To change brightness, we should send it as a next string:
+```
+b<brightness_value>
+```
+where *brightness_value* is some value between 0 and 100 expressed in percentages.
+
+Example of a valid command to change brightness:
+```
+b80
+```
+
+> **Note** <br/>
+> We should map our hue value from the range of *[0, 360]* to *[0, 255]* and our brightness value from the range of *[0, 100]* to *[0, 255]* to fulfill FastLED library contracts.
+
+## See also
+
+The [Android](https://github.com/andrew-andrushchenko/Lumos) part of the project.
+
+If you are interested in this project, I will appreciate any help or ideas. Feel free to ask or suggest something.
