@@ -1,110 +1,219 @@
-#define LUMOS_DEBUG                     0
+#include "settings.h"
+#include "timer.h"
+#include "effects.h"
+#include "LedStrip.h"
 
-#define LED_COUNT                      60
-#define LED_PIN                         7
-
-#define COLOR_SHIFT_STEP               15
-
-#define HUE_DEVIATION                  21
-#define MIN_SATURATION_DEVIATION      245
-#define MAX_SATURATION_DEVIATION      255
-#define MIN_VALUE_DEVIATION            70
-#define MAX_VALUE_DEVIATION           200
-
-#define BT_RX_PIN                      10
-#define BT_TX_PIN                      11
-
-#if LUMOS_DEBUG == 1
-#define LOG_D(x) Serial.println(x)
-#else
-#define LOG_D(x)
-#endif
-
-#include <FastLED.h>
 #include <SoftwareSerial.h>
 
-CRGB leds[LED_COUNT];
 SoftwareSerial bluetooth(BT_RX_PIN, BT_TX_PIN); // Arduino RX, Arduino TX
 
-uint8_t hue = 0;
-uint8_t brightnessLevel = 0;
+Effect effect = Effect::StripOff;
+Timer timer(20, Timer::TimeUnit::MILLIS);
 
 void setup()
 {
-#if LUMOS_DEBUG == 1
-    Serial.begin(9600);
+#if LUMOS_DEBUG
+  Serial.begin(9600);
+  Logger::setLogLevel(Logger::VERBOSE);
+  Logger::verbose("setup()", "Up and running!");
 #endif
-    LOG_D("Listening for incoming data...");
 
-    FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, LED_COUNT);
-    FastLED.setBrightness(brightnessLevel);
-
-    bluetooth.begin(9600);
+  initStrip();
+  bluetooth.begin(9600);
+  randomSeed(analogRead(0));
 }
 
 void loop()
 {
-    stripeCycle();
-
-    if (bluetooth.available())
-    {
-        String cmd = "";
-        while (bluetooth.available())
-        {
-            cmd += (char) bluetooth.read();
-            m_delay(30);
-        }
-
-        LOG_D("Obtained value: " + cmd);
-
-        parseCommand(cmd);
-    }
+  effectCycle();
+  listenForIncomingCommand();
+  parseCommand();
 }
 
-inline void m_delay(int delayMillis)
+inline void effectCycle()
 {
-    unsigned long prevMillis = millis();
-    while (millis() - prevMillis <= delayMillis);
-}
+  if (stripBrightness == 0)
+  {
+    return;
+  }
 
-inline void parseCommand(const String& cmd)
-{
-    if (cmd.charAt(0) == 'c')
+  if (timer.isReady())
+  {
+    switch (effect)
     {
-        hue = map(cmd.substring(1).toInt(), 0, 360, 0, 255);
+    case Effect::StripOff:
+      return;
 
-        LOG_D(hue);
+    case Effect::Fireplace:
+      fireplaceCycle();
+      break;
+
+    case Effect::LavaLamp:
+      lavaLampCycle();
+      break;
+
+    case Effect::Rainbow:
+      rainbowCycle();
+      break;
+
+    case Effect::TheaterRainbow:
+      theaterChaseRainbowCycle();
+      break;
+
+    case Effect::Plasma:
+      plasmaCycle(23, 15, 6, 7);
+      break;
+
+    case Effect::Fireflies:
+      firefliesCycle();
+      break;
+
+    case Effect::Sparkles:
+      sparklesCycle();
+      break;
+
+    case Effect::UserColors:
+      userColorsCycle();
+      break;
     }
 
-    if (cmd.charAt(0) == 'b')
-    {
-        int brightness = cmd.substring(1).toInt();
-        brightnessLevel = map(brightness, 0, 100, 0, 255);
-        FastLED.setBrightness(brightnessLevel);
-
-        LOG_D(brightnessLevel);
-    }
-}
-
-int counter = 0;
-inline void stripeCycle()
-{
-    for (int i = 0; i < LED_COUNT; i++)
-    {
-        leds[i] = getLEDColor((inoise8(i * COLOR_SHIFT_STEP, counter)));
-    }
-
-    counter += 20;
     FastLED.show();
-
-    m_delay(20);
+  }
 }
 
-inline CHSV getLEDColor(uint8_t val)
+// Data obtaining part
+const uint8_t btBufferSize = 32;
+char receivedCmd[btBufferSize];
+bool newData = false;
+
+inline void listenForIncomingCommand()
 {
-    return CHSV(
-        hue + map(val, 0, 255, 0, HUE_DEVIATION),
-        constrain(map(val, 0, 255, MAX_SATURATION_DEVIATION, MIN_SATURATION_DEVIATION), 0, 255),
-        constrain(map(val, 0, 255, MIN_VALUE_DEVIATION, MAX_VALUE_DEVIATION), 0, 255)
-    );
+  static boolean recvInProgress = false;
+  static byte ndx = 0;
+  char startMarker = '<';
+  char endMarker = '>';
+  char rc;
+
+  while (bluetooth.available() > 0 && !newData)
+  {
+    rc = bluetooth.read();
+
+    if (recvInProgress)
+    {
+      if (rc != endMarker)
+      {
+        receivedCmd[ndx] = rc;
+        ndx++;
+        if (ndx >= btBufferSize)
+        {
+          ndx = btBufferSize - 1;
+        }
+      }
+      else
+      {
+        receivedCmd[ndx] = '\0';
+        recvInProgress = false;
+        ndx = 0;
+        newData = true;
+      }
+    }
+    else if (rc == startMarker)
+    {
+      recvInProgress = true;
+    }
+  }
+}
+
+inline void parseCommand()
+{
+  if (newData)
+  {
+    timer.stop();
+    if (receivedCmd[0] == 'e')
+    {
+      selectEffect(atoi(receivedCmd + 1));
+    }
+
+    if (receivedCmd[0] == 'b')
+    {
+      uint8_t brightness = atoi(receivedCmd + 1);
+      stripBrightness = map(brightness, 0, 100, 0, 255);
+      FastLED.setBrightness(stripBrightness);
+
+      Serial.print("Brightness is set to: ");
+      Serial.println(stripBrightness);
+    }
+
+    if (receivedCmd[0] == 'h')
+    {
+      hue = map(atof(receivedCmd + 1), 0, 360, 0, 255);
+
+      Serial.print("Hue is set to: ");
+      Serial.println(hue);
+    }
+
+    if (receivedCmd[0] == 'f')
+    {
+      if (receivedCmd[1] == 'a')
+      {
+        firefliesAmount = atoi(receivedCmd + 2);
+
+        Serial.print("Fireflies amount is set to: ");
+        Serial.println(firefliesAmount);
+      }
+
+      if (receivedCmd[1] == 'g')
+      {
+        uint8_t val = atoi(receivedCmd + 2);
+        autogenerateColors = val == 0;
+
+        Serial.print("Autogenerate colors is set to: ");
+        Serial.println(val);
+      }
+
+      if (receivedCmd[1] == 'h')
+      {
+        Serial.print("Raw command for fireflies: ");
+        Serial.println(receivedCmd);
+
+        uint8_t index = atoi(receivedCmd[2]);
+
+        Serial.print("Selected fireflie index: ");
+        Serial.println(index);
+
+        uint8_t f_hue = map(atof(receivedCmd + 4), 0, 360, 0, 255);
+
+        Serial.print("Selected fireflie hue: ");
+        Serial.println(f_hue);
+
+        CHSV color = CHSV(f_hue, 255, 255);
+        firefliesColors[index] = color;
+      }
+
+      firefliesResetFlag = true;
+    }
+
+    newData = false;
+    timer.start();
+  }
+}
+
+inline void selectEffect(uint8_t effectOrdinal)
+{
+  effect = static_cast<Effect>(effectOrdinal);
+
+  Serial.print("Selcted effect ordinal: ");
+  Serial.println(effectOrdinal);
+
+  if (effect == Effect::Fireflies)
+  {
+    firefliesResetFlag = true;
+  }
+
+  if (effect == Effect::StripOff)
+  {
+    timer.stop();
+  }
+  
+  FastLED.clear();
 }
