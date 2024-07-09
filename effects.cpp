@@ -30,7 +30,7 @@ void fireplaceCycle()
 CHSV colorBy(uint8_t val)
 {
   return CHSV(
-      hue + map(val, 0, 255, 0, HUE_DEVIATION),
+      fireplaceHue + map(val, 0, 255, 0, HUE_DEVIATION),
       constrain(map(val, 0, 255, MAX_SATURATION_DEVIATION, MIN_SATURATION_DEVIATION), 0, 255),
       constrain(map(val, 0, 255, MIN_VALUE_DEVIATION, MAX_VALUE_DEVIATION), 0, 255));
 }
@@ -234,19 +234,4 @@ void sparklesCycle()
   }
 
   fade();
-}
-
-// USER COLORS. TODO: temporary and should be removed!
-void userColorsCycle()
-{
- #if LED_COUNT < 255
-  uint8_t i;
-#else
-  uint16_t i;
-#endif
-
-  for (i = 0; i < LED_COUNT; i++)
-  {
-    leds[i] = CHSV(ucHues[(pairNo + i % 2) % 8], 255, 255);
-  }
 }

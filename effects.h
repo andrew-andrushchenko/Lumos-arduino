@@ -13,12 +13,11 @@ enum class Effect
   TheaterRainbow,
   Plasma,
   Fireflies,
-  Sparkles,
-  UserColors
+  Sparkles
 };
 
 // FIREPLACE
-inline uint8_t hue = 0;
+inline uint8_t fireplaceHue = 50; // Consider mapping value between [0, 360] to [0, 255] interval
 
 void fireplaceCycle();
 CHSV colorBy(uint8_t val);
@@ -55,8 +54,3 @@ void firefliesCycle();
 
 // SPARKLES
 void sparklesCycle();
-
-// USER COLORS. TODO: temporary and should be removed!
-inline uint8_t pairNo = 0;
-inline uint8_t ucHues[8] = { 0, 50, 80, 90, 120, 150, 170, 200 };
-void userColorsCycle();
